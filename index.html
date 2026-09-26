@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>LX Battle Royale</title>
+<link rel="stylesheet" href="style.css">
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+</script>
+</head>
+<body>
+<div id="game"></div>
+
+<!-- LOBBY -->
+<div id="lobby" class="screen">
+  <div class="logo">L<span>X</span></div>
+  <div class="tag">BATTLE ROYALE · 30 SURVIVORS · 1 CHAMPION</div>
+  <input id="nameInput" maxlength="14" placeholder="Your name" autocomplete="off">
+  <button id="startBtn" class="big">START</button>
+  <div class="help desktop-only">
+    <b>WASD</b> move · <b>Mouse</b> aim · <b>LMB</b> fire · <b>RMB</b> scope · <b>Shift</b> sprint · <b>Space</b> jump<br>
+    <b>E</b> pick up · <b>R</b> reload · <b>1/2</b> switch · <b>H</b> medkit · <b>G</b> gloo wall · <b>F</b> jump from plane
+  </div>
+  <div class="help touch-only">Left stick moves · drag right side to aim · buttons to fire, jump, heal, gloo</div>
+  <div class="credit">MADE BY <b>INYANG DAVID</b></div>
+</div>
+
+<!-- HUD -->
+<div id="hud" class="hidden">
+  <div id="topbar">
+    <div class="pill"><span id="aliveCount">30</span> ALIVE</div>
+    <div class="pill kills"><span id="killCount">0</span> KILLS</div>
+    <div class="pill zone" id="zoneInfo">ZONE</div>
+  </div>
+  <canvas id="minimap" width="180" height="180"></canvas>
+  <div id="killfeed"></div>
+  <div id="crosshair"><i></i><i></i><i></i><i></i></div>
+  <div id="hitmarker">✕</div>
+  <div id="scope"></div>
+  <div id="prompt"></div>
+  <div id="banner"></div>
+  <div id="healbar"><div></div><span>HEALING</span></div>
+  <div id="vignette"></div>
+  <div id="zoneTint"></div>
+  <div id="dmgNumbers"></div>
+  <div id="hudCredit">LX · MADE BY INYANG DAVID</div>
+
+  <div id="bottom">
+    <div id="gear">
+      <span id="vestIcon" class="gearIcon">VEST 0</span>
+      <span id="helmIcon" class="gearIcon">HELM 0</span>
+      <span id="medIcon" class="gearIcon">MED 0</span>
+      <span id="glooIcon" class="gearIcon">GLOO 0</span>
+    </div>
+    <div id="hpwrap"><div id="armorbar"></div><div id="hpbar"></div><span id="hptext">200</span></div>
+    <div id="slots">
+      <div class="slot" id="slot0"><b>1</b><span class="wname">EMPTY</span><span class="ammo"></span></div>
+      <div class="slot" id="slot1"><b>2</b><span class="wname">EMPTY</span><span class="ammo"></span></div>
+    </div>
+  </div>
+
+  <!-- touch controls -->
+  <div id="touch" class="touch-only">
+    <div id="stick"><div id="knob"></div></div>
+    <div id="lookpad"></div>
+    <button class="tbtn" id="tFire">FIRE</button>
+    <button class="tbtn small" id="tFire2">FIRE</button>
+    <button class="tbtn small" id="tJump">JUMP</button>
+    <button class="tbtn small" id="tScope">SCOPE</button>
+    <button class="tbtn small" id="tReload">R</button>
+    <button class="tbtn small" id="tHeal">MED</button>
+    <button class="tbtn small" id="tGloo">GLOO</button>
+    <button class="tbtn small" id="tSwap">SWAP</button>
+    <button class="tbtn small" id="tPick">PICK</button>
+    <button class="tbtn small" id="tSprint">RUN</button>
+  </div>
+</div>
+
+<!-- END -->
+<div id="endscreen" class="screen hidden">
+  <div id="endTitle" class="logo small">ELIMINATED</div>
+  <div id="endRank">#12</div>
+  <div id="endStats"></div>
+  <button id="againBtn" class="big">PLAY AGAIN</button>
+  <div class="credit">MADE BY <b>INYANG DAVID</b></div>
+</div>
+
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
