@@ -19,12 +19,12 @@ html, body {
 /* ---------- screens ---------- */
 .screen {
   position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 18px; padding: 16px; text-align: center; z-index: 20;
+  gap: 14px; padding: 16px 16px 48px; text-align: center; z-index: 20; overflow-y: auto;
   background: radial-gradient(ellipse at 50% 30%, rgba(255,140,0,.25), transparent 60%),
               linear-gradient(180deg, rgba(8,10,18,.75), rgba(8,10,18,.95));
 }
 .logo {
-  font-size: clamp(90px, 22vw, 180px); font-weight: 900; letter-spacing: -6px; line-height: .9;
+  font-size: clamp(64px, 15vw, 128px); font-weight: 900; letter-spacing: -5px; line-height: .9;
   font-style: italic; color: #fff; text-shadow: 0 6px 0 #b25400, 0 12px 40px rgba(255,120,0,.6);
 }
 .logo span { color: var(--accent); }
@@ -176,3 +176,31 @@ body.touch #hudCredit { top: 8px; bottom: auto; left: 50%; transform: translateX
 #quality button { background: rgba(0,0,0,.4); color: #fff; border: 1px solid #444c5e; border-radius: 6px; padding: 5px 10px; font-weight: 800; cursor: pointer; }
 #quality button.on { border-color: var(--accent); color: var(--accent); }
 button.big:disabled { filter: grayscale(.7); opacity: .7; }
+
+#profile { display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,.35); padding: 8px 14px; border-radius: 12px; font-weight: 800; font-size: 13px; }
+#pfRank { color: var(--accent); letter-spacing: 2px; }
+#pfXp { width: 110px; height: 6px; background: rgba(255,255,255,.15); border-radius: 3px; overflow: hidden; }
+#pfXp div { height: 100%; background: var(--accent); width: 0; }
+#pfStats { opacity: .6; font-size: 11px; font-weight: 600; }
+#heroes { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.hero { width: 150px; padding: 10px; border-radius: 12px; background: rgba(0,0,0,.4); border: 2px solid #333b4d; cursor: pointer; text-align: left; }
+.hero.on { border-color: var(--accent); background: rgba(255,180,0,.12); }
+.hero b { font-size: 18px; font-style: italic; }
+.hero .sk { font-size: 11px; font-weight: 800; color: var(--accent); margin-top: 2px; }
+.hero .ds { font-size: 11px; opacity: .75; margin-top: 3px; line-height: 1.3; }
+.hero i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+#epwrap { width: 100%; height: 4px; background: rgba(0,0,0,.45); border-radius: 2px; overflow: hidden; margin-top: -3px; }
+#epbar { height: 100%; width: 0; background: #ffc21a; }
+#skill { position: absolute; right: 190px; bottom: 18px; width: 64px; height: 64px; border-radius: 50%; background: var(--panel); border: 2px solid rgba(255,255,255,.3); overflow: hidden; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+#skillFill { position: absolute; left: 0; right: 0; bottom: 0; height: 100%; background: rgba(255,180,0,.45); }
+#skill span { position: relative; font-size: 9px; font-weight: 900; text-align: center; line-height: 1.1; }
+#skillKey { opacity: .6; }
+#skill.ready { border-color: var(--accent); box-shadow: 0 0 12px rgba(255,180,0,.6); }
+body.touch #skill { display: none; }
+#tSkill { right: calc(6vw + 240px); bottom: 10vh; background: rgba(255,180,0,.35); }
+#tNade { right: calc(6vw + 240px); bottom: calc(10vh + 68px); }
+.rewards { display: flex; gap: 18px; justify-content: center; margin-top: 10px; font-size: 22px; font-weight: 900; }
+.rewards .up { color: var(--hp); } .rewards .down { color: #ff6b6b; }
+.lvlup { color: var(--accent); font-weight: 900; font-size: 20px; margin-top: 6px; }
+#endStats .small { font-size: 13px; opacity: .7; margin-top: 6px; }
+@media (max-width: 640px) { .hero { width: 110px; } .hero .ds { display: none; } #skill { right: 12px; bottom: 150px; } }

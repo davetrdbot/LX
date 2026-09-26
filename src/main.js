@@ -13,6 +13,10 @@ import { Bot } from './bot.js';
 import { Hud } from './hud.js';
 import { input, initInput } from './input.js';
 import { updateGloos } from './combat.js';
+import { updateSkills } from './skills.js';
+import { Grenades } from './grenades.js';
+import { loadProfile, saveProfile, recordMatch, rankOf, xpForLevel } from './profile.js';
+import { EP, HEROES } from './config.js';
 import { groundAt } from './physics.js';
 import { initAudio, sfxKill, sfxZone, sfxHurt, sfxWin, sfxHit } from './audio.js';
 
@@ -53,6 +57,9 @@ class Game {
     this.plane = new Plane(this.scene);
     this.hud = new Hud();
     this.gloos = [];
+    this.shields = [];
+    this.grenades = new Grenades(this);
+    this.shake = 0;
     this.pings = [];
     this.time = 0;
     this.running = false;
@@ -68,8 +75,9 @@ class Game {
     requestAnimationFrame(this.loop);
   }
 
-  start(name) {
+  start(name, hero) {
     this.player = new Player(name || 'Survivor');
+    this.player.hero = hero;
     this.characters.push(this.player);
     const names = [...BOT_NAMES].sort(() => Math.random() - 0.5);
     const spots = this.loot.items.length ? this.loot.items : [{ x: 0, z: 0 }];
@@ -159,6 +167,7 @@ class Game {
     if (this.over) return;
     this.over = true;
     const rank = won ? 1 : this.aliveCount() + 1;
+    const res = recordMatch(profile, { placement: rank, kills: this.player.kills, survived: this.time, won, total: this.characters.length });
     if (won) { sfxWin(); this.banner('LX CHAMPION!', 5); }
     setTimeout(() => {
       document.exitPointerLock?.();
@@ -166,7 +175,11 @@ class Game {
       document.getElementById('endRank').textContent = '#' + rank;
       const p = this.player;
       document.getElementById('endStats').innerHTML =
-        `Kills: <b>${p.kills}</b> · Survived: <b>${fmt(this.time)}</b>` + (killer && !won ? `<br>Eliminated by <b>${escapeHtml(killer.name)}</b>` : '');
+        `Kills: <b>${p.kills}</b> · Survived: <b>${fmt(this.time)}</b>` + (killer && !won ? `<br>Eliminated by <b>${escapeHtml(killer.name)}</b>` : '') +
+        `<div class="rewards"><span>+${res.xp} XP</span><span class="${res.rpGain >= 0 ? 'up' : 'down'}">${res.rpGain >= 0 ? '+' : ''}${res.rpGain} RP</span></div>` +
+        (res.leveled ? `<div class="lvlup">LEVEL UP! → LV ${profile.level}</div>` : '') +
+        (res.rank.name !== res.prevRank.name ? `<div class="lvlup">RANK: ${res.rank.name}</div>` : '') +
+        `<div class="small">${res.rank.name} · ${profile.rp} RP · LV ${profile.level}</div>`;
       document.getElementById('endscreen').classList.remove('hidden');
     }, won ? 3000 : 2200);
   }
@@ -300,6 +313,19 @@ class Game {
     }
 
     updateGloos(this, dt);
+    updateSkills(this, dt);
+    this.grenades.update(dt);
+    // EP slowly converts into HP
+    for (const c of this.characters) {
+      if (!c.alive || c.ep <= 0 || c.hp >= 200) continue;
+      const k = Math.min(c.ep, EP.rate * dt, 200 - c.hp);
+      c.ep -= k; c.hp += k;
+    }
+    if (this.shake > 0) {
+      this.shake = Math.max(0, this.shake - dt * 1.5);
+      this.camera.position.x += (Math.random() - 0.5) * this.shake;
+      this.camera.position.y += (Math.random() - 0.5) * this.shake;
+    }
     this.updateAirdrop(dt);
     this.loot.update(dt, this.time);
     this.effects.update(dt);
@@ -327,6 +353,24 @@ function escapeHtml(s) { return String(s).replace(/[&<>"]/g, (ch) => ({ '&': '&a
 const game = new Game();
 window.__lx = game;
 const startBtn = document.getElementById('startBtn');
+const profile = loadProfile();
+function renderProfile() {
+  const r = rankOf(profile.rp);
+  document.getElementById('pfRank').textContent = r.name;
+  document.getElementById('pfLevel').textContent = 'LV ' + profile.level;
+  document.getElementById('pfXp').firstElementChild.style.width = (profile.xp / xpForLevel(profile.level)) * 100 + '%';
+  document.getElementById('pfStats').textContent = `${profile.rp} RP · ${profile.wins} wins · ${profile.kills} kills`;
+  const box = document.getElementById('heroes');
+  box.innerHTML = '';
+  for (const [id, h] of Object.entries(HEROES)) {
+    const d = document.createElement('div');
+    d.className = 'hero' + (profile.hero === id ? ' on' : '');
+    d.innerHTML = `<b><i style="background:#${h.color.toString(16).padStart(6, '0')}"></i>${h.name}</b><div class="sk">${h.title}</div><div class="ds">${h.desc}</div>`;
+    d.addEventListener('click', () => { profile.hero = id; saveProfile(profile); renderProfile(); });
+    box.appendChild(d);
+  }
+}
+renderProfile();
 for (const b of document.querySelectorAll('#quality button')) {
   b.classList.toggle('on', b.dataset.q === QUALITY);
   b.addEventListener('click', () => { if (b.dataset.q !== QUALITY) setQuality(b.dataset.q); });
@@ -343,7 +387,7 @@ document.getElementById('startBtn').addEventListener('click', () => {
   document.getElementById('lobby').classList.add('hidden');
   document.getElementById('hud').classList.remove('hidden');
   if (!input.touch) game.renderer.domElement.requestPointerLock?.();
-  game.start(name);
+  game.start(name, profile.hero);
 });
 document.getElementById('againBtn').addEventListener('click', () => {
   try { sessionStorage.setItem('lx-autostart', '1'); } catch {}

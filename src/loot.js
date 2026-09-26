@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { WEAPONS, AMMO_PICKUP, AMMO_NAMES } from './config.js';
+import { WEAPONS, AMMO_PICKUP, AMMO_NAMES, EP } from './config.js';
 
 const RARITY_COLORS = [0xbfbfbf, 0x4fd06b, 0x3fa9ff, 0xc56bff, 0xffb400];
 
@@ -12,6 +12,8 @@ export function itemLabel(it) {
     case 'vest': return `VEST LV${it.lvl}`;
     case 'helm': return `HELMET LV${it.lvl}`;
     case 'gloo': return `GLOO WALL ×${it.amount}`;
+    case 'frag': return `FRAG GRENADE ×${it.amount}`;
+    case 'ep': return `MUSHROOM +${EP.mushroom} EP`;
   }
   return '?';
 }
@@ -19,7 +21,8 @@ export function itemLabel(it) {
 function rarity(it) {
   if (it.type === 'gun') return WEAPONS[it.key].rarity + 1;
   if (it.type === 'vest' || it.type === 'helm') return it.lvl;
-  if (it.type === 'gloo') return 2;
+  if (it.type === 'gloo' || it.type === 'frag') return 2;
+  if (it.type === 'ep') return 1;
   return 0;
 }
 
@@ -42,6 +45,13 @@ function itemMesh(it) {
     body = new THREE.Mesh(geoCache.vest ||= new THREE.BoxGeometry(0.5, 0.55, 0.2), new THREE.MeshLambertMaterial({ color: 0x4a5a3a }));
   } else if (it.type === 'helm') {
     body = new THREE.Mesh(geoCache.helm ||= new THREE.SphereGeometry(0.25, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshLambertMaterial({ color: 0x3d4a2f }));
+  } else if (it.type === 'frag') {
+    body = new THREE.Mesh(geoCache.frag ||= new THREE.SphereGeometry(0.14, 10, 8), new THREE.MeshStandardMaterial({ color: 0x3f4a2a, roughness: 0.6 }));
+    body.add(new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.1, 6).translate(0, 0.15, 0), new THREE.MeshStandardMaterial({ color: 0x999999, metalness: 0.7 })));
+  } else if (it.type === 'ep') {
+    body = new THREE.Group();
+    body.add(new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 0.2, 8).translate(0, -0.05, 0), new THREE.MeshStandardMaterial({ color: 0xf2e8d0 })));
+    body.add(new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2).translate(0, 0.04, 0), new THREE.MeshStandardMaterial({ color: 0xffc21a, emissive: 0x553300 })));
   } else {
     body = new THREE.Mesh(geoCache.gloo ||= new THREE.SphereGeometry(0.18, 10, 8), new THREE.MeshLambertMaterial({ color: 0x9ee7ff, emissive: 0x225566 }));
   }
@@ -75,8 +85,10 @@ function rollItem(tier) {
   }
   if (r < 0.72) return { type: 'med', amount: 1 + (Math.random() < 0.3 ? 1 : 0) };
   if (r < 0.82) return { type: 'vest', lvl: Math.min(3, 1 + Math.floor(Math.random() * (tier + 1) * 0.8)) };
-  if (r < 0.92) return { type: 'helm', lvl: Math.min(3, 1 + Math.floor(Math.random() * (tier + 1) * 0.8)) };
-  return { type: 'gloo', amount: 2 };
+  if (r < 0.9) return { type: 'helm', lvl: Math.min(3, 1 + Math.floor(Math.random() * (tier + 1) * 0.8)) };
+  if (r < 0.94) return { type: 'gloo', amount: 2 };
+  if (r < 0.97) return { type: 'frag', amount: 1 + (Math.random() < 0.3 ? 1 : 0) };
+  return { type: 'ep', amount: 1 };
 }
 
 export class LootManager {
@@ -123,6 +135,7 @@ export class LootManager {
     for (const k in ch.ammo) if (ch.ammo[k] > 0) out.push({ type: 'ammo', ammo: k, amount: ch.ammo[k] });
     if (ch.meds) out.push({ type: 'med', amount: ch.meds });
     if (ch.gloo) out.push({ type: 'gloo', amount: ch.gloo });
+    if (ch.frags) out.push({ type: 'frag', amount: ch.frags });
     if (ch.vest) out.push({ type: 'vest', lvl: ch.vest });
     if (ch.helm) out.push({ type: 'helm', lvl: ch.helm });
     out.forEach((it, i) => {
@@ -165,6 +178,8 @@ export function wants(ch, it) {
     case 'vest': return it.lvl > ch.vest;
     case 'helm': return it.lvl > ch.helm;
     case 'gloo': return ch.gloo < 8;
+    case 'frag': return ch.frags < 4;
+    case 'ep': return ch.ep < EP.max - 20;
   }
   return false;
 }
@@ -190,6 +205,8 @@ export function applyItem(ch, it) {
     case 'ammo': ch.ammo[it.ammo] += it.amount; return null;
     case 'med': ch.meds += it.amount; return null;
     case 'gloo': ch.gloo += it.amount; return null;
+    case 'frag': ch.frags += it.amount; return null;
+    case 'ep': ch.ep = Math.min(EP.max, ch.ep + EP.mushroom * it.amount); return null;
     case 'vest': { const old = ch.vest; ch.vest = it.lvl; ch.refreshGear(); return old ? { type: 'vest', lvl: old } : null; }
     case 'helm': { const old = ch.helm; ch.helm = it.lvl; ch.refreshGear(); return old ? { type: 'helm', lvl: old } : null; }
   }

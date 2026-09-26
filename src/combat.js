@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GLOO } from './config.js';
 import { raycastBoxes, raycastCharacter, addBox, removeCollider } from './physics.js';
 import { terrainRay } from './terrain.js';
+import { raycastShields } from './skills.js';
 import { sfxShot, sfxHit, sfxEmpty, sfxReload, sfxGloo } from './audio.js';
 
 const tmpDir = new THREE.Vector3();
@@ -50,6 +51,9 @@ export function fireWeapon(game, shooter, origin, dir, now, extraSpread = 0) {
       let dmg = def.dmg;
       if (def.pellets > 1) dmg *= Math.max(0.25, 1 - res.t / def.range);
       dealtTotal += game.damage(res.char, dmg, res.head, shooter, def.name, tmpEnd);
+    } else if (res.shield) {
+      res.shield.hp -= def.dmg;
+      game.effects.impact(tmpEnd, 'gloo', 3);
     } else if (res.box || res.ground) {
       if (res.box?.gloo) damageGloo(game, res.box, def.dmg);
       game.effects.impact(tmpEnd, res.box?.gloo ? 'gloo' : 'dust', def.pellets > 1 ? 2 : 4);
@@ -67,6 +71,8 @@ export function traceShot(game, shooter, origin, dir, range) {
   let best = { t: box ? box.t : range, box: box ? box.collider : null, char: null, head: false };
   const tt = terrainRay(origin.x, origin.y, origin.z, dir.x, dir.y, dir.z, best.t);
   if (tt !== null) best = { t: tt, box: null, char: null, head: false, ground: true };
+  const sh = raycastShields(game, origin, dir, best.t);
+  if (sh) best = { t: sh.t, box: null, char: null, head: false, shield: sh.shield };
   for (const c of game.characters) {
     if (c === shooter || !c.alive || c.state === 'plane') continue;
     // cheap reject: distance from ray

@@ -68,3 +68,13 @@ export const sfxGloo = () => { noise(0.4, 600, 1, 0.5); tone(300, 0.3, 0.2, 'sin
 export const sfxHeal = () => tone(520, 0.3, 0.15, 'sine', 300);
 export const sfxChute = () => noise(0.5, 400, 0.5, 0.4);
 export const sfxWin = () => [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => tone(f, 0.35, 0.25, 'triangle'), i * 140));
+export const sfxBoom = (distance = 0) => {
+  const att = Math.max(0, 1 - distance / 260) ** 2;
+  if (att < 0.02) return;
+  noise(1.1, 400, 0.7, 1.3 * att); tone(60, 0.8, 0.6 * att, 'sine', -30);
+};
+export const sfxSkill = (kind) => {
+  if (kind === 'dash') { noise(0.3, 2500, 1, 0.3, 'bandpass'); tone(300, 0.25, 0.2, 'sawtooth', 600); }
+  else if (kind === 'aura') [660, 880, 1100].forEach((f, i) => setTimeout(() => tone(f, 0.3, 0.15), i * 70));
+  else { tone(200, 0.5, 0.25, 'triangle', 300); noise(0.4, 800, 1, 0.3); }
+};

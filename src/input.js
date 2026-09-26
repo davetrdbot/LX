@@ -17,7 +17,7 @@ export const input = {
 
 const KEYMAP = {
   Space: 'jump', KeyR: 'reload', KeyE: 'pickup', KeyH: 'heal', KeyG: 'gloo', KeyF: 'plane',
-  Digit1: 'slot0', Digit2: 'slot1', KeyQ: 'swap', KeyM: 'map',
+  Digit1: 'slot0', Digit2: 'slot1', KeyQ: 'swap', KeyM: 'map', KeyX: 'skill', KeyT: 'nade', KeyC: 'skill',
 };
 
 export function initInput(canvas) {
@@ -129,7 +129,7 @@ function initTouch() {
   const tap = (id, action) => document.getElementById(id).addEventListener('touchstart', (e) => {
     e.preventDefault(); e.stopPropagation(); input.pressed.add(action);
   }, { passive: false });
-  tap('tJump', 'jump'); tap('tReload', 'reload'); tap('tHeal', 'heal'); tap('tGloo', 'gloo'); tap('tSwap', 'swap'); tap('tPick', 'pickup');
+  tap('tJump', 'jump'); tap('tReload', 'reload'); tap('tHeal', 'heal'); tap('tGloo', 'gloo'); tap('tSwap', 'swap'); tap('tPick', 'pickup'); tap('tSkill', 'skill'); tap('tNade', 'nade');
   document.getElementById('tScope').addEventListener('touchstart', (e) => { e.preventDefault(); input.aim = !input.aim; }, { passive: false });
   const sprint = document.getElementById('tSprint');
   sprint.addEventListener('touchstart', (e) => {

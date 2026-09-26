@@ -1,4 +1,4 @@
-import { MAP, PLAYER } from './config.js';
+import { MAP, PLAYER, HEROES, EP } from './config.js';
 import { itemLabel } from './loot.js';
 import { input } from './input.js';
 
@@ -10,7 +10,8 @@ export class Hud {
       alive: $('aliveCount'), kills: $('killCount'), zone: $('zoneInfo'), hp: $('hpbar'), hpText: $('hptext'), armor: $('armorbar'),
       slots: [$('slot0'), $('slot1')], prompt: $('prompt'), banner: $('banner'), heal: $('healbar'), vign: $('vignette'),
       zoneTint: $('zoneTint'), feed: $('killfeed'), hit: $('hitmarker'), cross: $('crosshair'), scope: $('scope'),
-      vest: $('vestIcon'), helm: $('helmIcon'), med: $('medIcon'), gloo: $('glooIcon'), pick: $('tPick'),
+      vest: $('vestIcon'), helm: $('helmIcon'), med: $('medIcon'), gloo: $('glooIcon'), frag: $('fragIcon'), pick: $('tPick'),
+      ep: $('epbar'), skill: $('skill'), skillFill: $('skillFill'), skillName: $('skillName'), tSkill: $('tSkill'),
     };
     this.map = $('minimap');
     this.mctx = this.map.getContext('2d');
@@ -98,6 +99,16 @@ export class Hud {
     gear(this.el.helm, 'helm', 'HELM', p.helm);
     gear(this.el.med, 'med', 'MED', p.meds);
     gear(this.el.gloo, 'gloo', 'GLOO', p.gloo);
+    gear(this.el.frag, 'frag', 'FRAG', p.frags);
+    this.set('ep', this.el.ep, 'width', (p.ep / EP.max) * 100 + '%');
+    const h = HEROES[p.hero];
+    if (h) {
+      const left = Math.max(0, p.skillReadyAt - now);
+      this.set('skn', this.el.skillName, 'text', left > 0 ? Math.ceil(left) + 's' : h.title);
+      this.el.skillFill.style.height = (left > 0 ? (left / h.cd) * 100 : 0) + '%';
+      this.el.skill.classList.toggle('ready', left <= 0);
+      this.set('tsk', this.el.tSkill, 'text', left > 0 ? Math.ceil(left) + 's' : 'SKILL');
+    }
 
     // prompts
     let prompt = '';

@@ -76,6 +76,10 @@ export class Character {
     this.ammo = { smg: 0, ar: 0, sg: 0, sn: 0 };
     this.meds = 0;
     this.gloo = 0;
+    this.frags = 0;
+    this.ep = 0;
+    this.hero = 'kai';
+    this.skillReadyAt = 0;
     this.kills = 0;
     this.alive = true;
     this.state = 'plane'; // plane | fall | chute | ground | dead

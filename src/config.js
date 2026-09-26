@@ -51,3 +51,20 @@ export const BOT_NAMES = [
   'Kilo', 'Hex', 'Drift', 'Echo', 'Frost', 'Havoc', 'Indigo', 'Jolt', 'Karma', 'Lynx', 'Monk', 'Nyx', 'Orbit',
   'Pyro', 'Quill', 'Raze', 'Storm', 'Titan', 'Umbra', 'Volt', 'Wolf', 'Xeno', 'Yeti', 'Zion',
 ];
+
+export const EP = { max: 200, mushroom: 50, rate: 4 }; // EP converts into HP at `rate` per second
+
+export const FRAG = { fuse: 2.4, radius: 8, dmg: 150, throwSpeed: 19 };
+
+// Playable characters, each with one active skill (original designs).
+export const HEROES = {
+  kai:  { name: 'KAI',  skill: 'dash',   title: 'DASH',          cd: 22, dur: 3,  desc: '+60% move speed for 3s', color: 0x2e86ab },
+  nia:  { name: 'NIA',  skill: 'aura',   title: 'HEALING PULSE', cd: 45, dur: 8,  desc: 'Heal 6 HP/s and +15% speed for 8s', color: 0x3ee07a },
+  rex:  { name: 'REX',  skill: 'shield', title: 'BARRIER DOME',  cd: 50, dur: 4,  desc: 'Bullet-proof dome (600 HP) for 4s', color: 0xffb400 },
+};
+
+export const RANKS = [
+  { name: 'BRONZE', rp: 0, fee: 0 }, { name: 'SILVER', rp: 1000, fee: 10 }, { name: 'GOLD', rp: 1800, fee: 20 },
+  { name: 'PLATINUM', rp: 2600, fee: 30 }, { name: 'DIAMOND', rp: 3400, fee: 40 }, { name: 'HEROIC', rp: 4200, fee: 50 },
+  { name: 'GRANDMASTER', rp: 5000, fee: 60 },
+];

@@ -8,6 +8,7 @@ import { raycastBoxes } from './physics.js';
 import { heightAt } from './terrain.js';
 import { wants, applyItem, itemLabel } from './loot.js';
 import { clamp } from './utils.js';
+import { useSkill, speedMult } from './skills.js';
 import { sfxPickup, sfxReload, sfxHeal, sfxChute } from './audio.js';
 
 const tmp = new THREE.Vector3(), tmpDir = new THREE.Vector3(), pivot = new THREE.Vector3(), want = new THREE.Vector3();
@@ -74,11 +75,17 @@ export class Player extends Character {
       if (!placeGloo(game, this)) game.banner(this.gloo ? 'CAN\'T PLACE HERE' : 'NO GLOO WALLS', 1);
     }
     if (input.take('map')) game.hud.toggleMap();
+    if (input.take('skill') && !useSkill(game, this)) game.banner('SKILL COOLING DOWN', 0.8, true);
+    if (input.take('nade')) {
+      if (this.frags > 0) { camera.getWorldDirection(tmpDir); game.grenades.throw(this, tmpDir); }
+      else game.banner('NO GRENADES', 1, true);
+    }
 
     const sprint = (input.keys.has('ShiftLeft') || input.sprintToggle) && mz < 0 && !input.fire && !input.aim;
     let speed = sprint ? PLAYER.sprintSpeed : PLAYER.walkSpeed;
     if (this.healEnd) speed *= 0.45;
     if (input.aim) speed *= 0.6;
+    speed *= speedMult(game, this);
     const moveSpeed = groundMove(this, dt, wx, wz, speed * Math.min(1, ml), input.take('jump'));
 
     // ---- shooting ----

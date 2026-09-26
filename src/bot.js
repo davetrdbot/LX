@@ -6,6 +6,8 @@ import { fireWeapon, placeGloo } from './combat.js';
 import { lineOfSight } from './physics.js';
 import { wants, applyItem } from './loot.js';
 import { angleDiff } from './utils.js';
+import { useSkill, speedMult, skillReady } from './skills.js';
+import { HEROES } from './config.js';
 
 const tmpO = new THREE.Vector3(), tmpD = new THREE.Vector3();
 
@@ -32,6 +34,8 @@ export class Bot extends Character {
     this.jumpT = 0;
     this.glooCd = 0;
     this.aggression = Math.random();
+    this.hero = Object.keys(HEROES)[Math.floor(Math.random() * 3)];
+    this.nadeCd = 0;
   }
 
   update(dt, game, now) {
@@ -90,6 +94,16 @@ export class Bot extends Character {
           if (fireWeapon(game, this, tmpO, tmpD, now, err)) this.healEnd = 0;
         }
       }
+      // skills + grenades
+      if (skillReady(game, this)) {
+        const h = HEROES[this.hero].skill;
+        if ((h === 'shield' && this.hp < 120 && this.lastDamagedAt > now - 1) || (h === 'aura' && this.hp < 130) || (h === 'dash' && fwd !== 0 && Math.random() < 0.01)) useSkill(game, this);
+      }
+      this.nadeCd -= dt;
+      if (this.frags > 0 && this.nadeCd <= 0 && d > 9 && d < 32 && Math.random() < 0.004 + this.skill * 0.004) {
+        game.grenades.throwAt(this, e.pos.x, e.pos.y, e.pos.z);
+        this.nadeCd = 7;
+      }
       // pop a gloo wall when hurt under fire
       if (this.gloo > 0 && this.hp < 110 && this.glooCd <= 0 && this.lastDamagedAt > now - 1 && Math.random() < 0.02 + this.skill * 0.03) {
         placeGloo(game, this);
@@ -130,6 +144,8 @@ export class Bot extends Character {
 
     const len = Math.hypot(wx, wz);
     if (len > 1) { wx /= len; wz /= len; }
+    speed *= speedMult(game, this);
+    if (this.goalKind === 'zone' && !e && HEROES[this.hero].skill === 'dash' && game.zone.outside(this.pos.x, this.pos.z)) useSkill(game, this);
     const sp = groundMove(this, dt, wx, wz, speed, jump);
     this.animate(dt, sp, game.camera.position);
   }

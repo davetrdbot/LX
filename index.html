@@ -19,12 +19,14 @@
 <div id="lobby" class="screen">
   <div class="logo">L<span>X</span></div>
   <div class="tag">BATTLE ROYALE · 30 SURVIVORS · 1 CHAMPION</div>
+  <div id="profile"><span id="pfRank">BRONZE</span><span id="pfLevel">LV 1</span><div id="pfXp"><div></div></div><span id="pfStats"></span></div>
+  <div id="heroes"></div>
   <input id="nameInput" maxlength="14" placeholder="Your name" autocomplete="off">
   <button id="startBtn" class="big" disabled>LOADING…</button>
   <div id="quality">GRAPHICS <button data-q="low">LOW</button><button data-q="med">MEDIUM</button><button data-q="high">HIGH</button></div>
   <div class="help desktop-only">
     <b>WASD</b> move · <b>Mouse</b> aim · <b>LMB</b> fire · <b>RMB</b> scope · <b>Shift</b> sprint · <b>Space</b> jump<br>
-    <b>E</b> pick up · <b>R</b> reload · <b>1/2</b> switch · <b>H</b> medkit · <b>G</b> gloo wall · <b>F</b> jump from plane
+    <b>E</b> pick up · <b>R</b> reload · <b>1/2</b> switch · <b>H</b> medkit · <b>G</b> gloo wall · <b>T</b> grenade · <b>X</b> skill · <b>M</b> map · <b>F</b> jump from plane
   </div>
   <div class="help touch-only">Left stick moves · drag right side to aim · buttons to fire, jump, heal, gloo</div>
   <div class="credit">MADE BY <b>INYANG DAVID</b></div>
@@ -49,6 +51,7 @@
   <div id="zoneTint"></div>
   <div id="dmgNumbers"></div>
   <div id="hudCredit">LX · MADE BY INYANG DAVID</div>
+  <div id="skill"><div id="skillFill"></div><span id="skillName">DASH</span><span id="skillKey">X</span></div>
 
   <div id="bottom">
     <div id="gear">
@@ -56,8 +59,10 @@
       <span id="helmIcon" class="gearIcon">HELM 0</span>
       <span id="medIcon" class="gearIcon">MED 0</span>
       <span id="glooIcon" class="gearIcon">GLOO 0</span>
+      <span id="fragIcon" class="gearIcon">FRAG 0</span>
     </div>
     <div id="hpwrap"><div id="armorbar"></div><div id="hpbar"></div><span id="hptext">200</span></div>
+    <div id="epwrap"><div id="epbar"></div></div>
     <div id="slots">
       <div class="slot" id="slot0"><b>1</b><span class="wname">EMPTY</span><span class="ammo"></span></div>
       <div class="slot" id="slot1"><b>2</b><span class="wname">EMPTY</span><span class="ammo"></span></div>
@@ -78,6 +83,8 @@
     <button class="tbtn small" id="tSwap">SWAP</button>
     <button class="tbtn small" id="tPick">PICK</button>
     <button class="tbtn small" id="tSprint">RUN</button>
+    <button class="tbtn small" id="tSkill">SKILL</button>
+    <button class="tbtn small" id="tNade">NADE</button>
   </div>
 </div>
 
