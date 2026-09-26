@@ -44,7 +44,7 @@ export class Bot extends Character {
         this.yaw = Math.atan2(-wx, -wz);
       }
       airMove(this, dt, wx, wz);
-      this.animate(dt, 0);
+      this.animate(dt, 0, game.camera.position);
       return;
     }
     if (this.state !== 'ground') return;
@@ -131,7 +131,7 @@ export class Bot extends Character {
     const len = Math.hypot(wx, wz);
     if (len > 1) { wx /= len; wz /= len; }
     const sp = groundMove(this, dt, wx, wz, speed, jump);
-    this.animate(dt, sp);
+    this.animate(dt, sp, game.camera.position);
   }
 
   think(game, now) {

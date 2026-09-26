@@ -15,10 +15,11 @@ export class Zone {
     this.active = false;
 
     const geo = new THREE.CylinderGeometry(1, 1, 120, 96, 1, true);
-    const mat = new THREE.MeshBasicMaterial({ color: 0x3f8cff, transparent: true, opacity: 0.28, side: THREE.DoubleSide, depthWrite: false, fog: false });
+    const mat = new THREE.MeshBasicMaterial({ color: 0x2a6cff, transparent: true, opacity: 0.22, side: THREE.DoubleSide, depthWrite: false, fog: false });
     this.wall = new THREE.Mesh(geo, mat);
     this.wall.position.y = 60;
     this.wall.renderOrder = 5;
+    this.wall.visible = false;
     scene.add(this.wall);
 
     const ringGeo = new THREE.RingGeometry(0.995, 1, 128);
@@ -32,6 +33,7 @@ export class Zone {
 
   start() {
     this.active = true;
+    this.wall.visible = true;
     this.beginPhase(0);
   }
 

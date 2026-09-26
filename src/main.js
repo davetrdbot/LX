@@ -1,6 +1,9 @@
 import * as THREE from 'three';
 import { MAP, BOT_NAMES, ZONE_PHASES, AMMO_PICKUP } from './config.js';
 import { buildWorld } from './world.js';
+import { Grass } from './grass.js';
+import { loadAssets } from './assets.js';
+import { GFX, QUALITY, setQuality } from './quality.js';
 import { LootManager } from './loot.js';
 import { Zone } from './zone.js';
 import { Effects } from './effects.js';
@@ -19,24 +22,29 @@ const SPEED = Math.max(1, Math.min(8, parseInt(new URLSearchParams(location.sear
 class Game {
   constructor() {
     const container = document.getElementById('game');
-    this.renderer = new THREE.WebGLRenderer({ antialias: devicePixelRatio < 2, powerPreference: 'high-performance' });
-    this.renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+    this.renderer = new THREE.WebGLRenderer({ antialias: GFX.antialias && devicePixelRatio < 2, powerPreference: 'high-performance' });
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio, GFX.pixelRatio));
     this.renderer.setSize(innerWidth, innerHeight);
-    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.enabled = GFX.shadows;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 0.72;
     container.appendChild(this.renderer.domElement);
 
     this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.1, 1200);
+    this.camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.1, 5000);
     addEventListener('resize', () => {
       this.camera.aspect = innerWidth / innerHeight;
       this.camera.updateProjectionMatrix();
       this.renderer.setSize(innerWidth, innerHeight);
     });
 
-    const w = buildWorld(this.scene);
+    const w = buildWorld(this.scene, this.renderer);
     this.sun = w.sun;
     this.towns = w.towns;
+    this.clouds = w.clouds;
+    this.beacon = w.beacon;
+    this.grass = new Grass(this.scene, w.houseRects, GFX.grass);
     this.loot = new LootManager(this.scene);
     this.loot.populate(w.lootSpots);
     this.zone = new Zone(this.scene);
@@ -132,6 +140,7 @@ class Game {
     victim.state = 'dead';
     victim.deathTime = this.time;
     victim.healEnd = 0;
+    victim.onDeath();
     this.loot.dropInventory(victim);
     victim.weapons = [null, null];
     victim.refreshGear();
@@ -235,6 +244,7 @@ class Game {
       const t = performance.now() / 1000 * 0.05;
       this.camera.position.set(Math.sin(t) * 320, 170, Math.cos(t) * 320);
       this.camera.lookAt(0, 0, 0);
+      this.scene.fog.near = 400; this.scene.fog.far = 1600;
     }
     this.renderer.render(this.scene, this.camera);
   }
@@ -281,13 +291,12 @@ class Game {
       }
     }
 
-    // dead bodies sink away
+    // dead bodies play their death animation, then fade out
     for (const c of this.characters) {
       if (c.alive) continue;
       const age = this.time - c.deathTime;
-      c.mesh.rotation.x = Math.max(-Math.PI / 2, -age * 5);
-      c.mesh.position.set(c.pos.x, c.pos.y + 0.2, c.pos.z);
-      if (age > 6) c.mesh.visible = false;
+      if (age < 10) c.animate(dt, 0, this.camera.position);
+      else c.mesh.visible = false;
     }
 
     updateGloos(this, dt);
@@ -298,8 +307,16 @@ class Game {
 
     // keep the shadow camera around the player
     const focus = p.state === 'plane' ? this.plane.pos : p.pos;
-    this.sun.position.set(focus.x + 60, 140, focus.z + 30);
-    this.sun.target.position.set(focus.x, 0, focus.z);
+    this.sun.target.position.set(focus.x, focus.y > 60 ? 0 : focus.y, focus.z);
+    this.sun.position.copy(this.sun.target.position).addScaledVector(this.sun.userData.dir, 150);
+    this.grass.update(dt, focus);
+    this.loot.focus = focus;
+    for (const c of this.clouds.children) { c.position.x += dt * 2; if (c.position.x > 700) c.position.x = -700; }
+    this.beacon.visible = Math.sin(this.time * 4) > 0;
+    // see further from the sky
+    const alt = Math.max(0, this.camera.position.y - 20);
+    this.scene.fog.near = 160 + alt * 1.5;
+    this.scene.fog.far = 650 + alt * 4;
   }
 }
 
@@ -309,6 +326,14 @@ function escapeHtml(s) { return String(s).replace(/[&<>"]/g, (ch) => ({ '&': '&a
 // ---------- boot ----------
 const game = new Game();
 window.__lx = game;
+const startBtn = document.getElementById('startBtn');
+for (const b of document.querySelectorAll('#quality button')) {
+  b.classList.toggle('on', b.dataset.q === QUALITY);
+  b.addEventListener('click', () => { if (b.dataset.q !== QUALITY) setQuality(b.dataset.q); });
+}
+loadAssets((f) => { startBtn.textContent = `LOADING ${Math.round(f * 100)}%`; })
+  .then(() => { startBtn.disabled = false; startBtn.textContent = 'START'; if (window.__autostart) startBtn.click(); })
+  .catch((e) => { startBtn.textContent = 'LOAD FAILED — REFRESH'; console.error(e); });
 const nameInput = document.getElementById('nameInput');
 try { nameInput.value = localStorage.getItem('lx-name') || ''; } catch {}
 document.getElementById('startBtn').addEventListener('click', () => {
@@ -327,6 +352,6 @@ document.getElementById('againBtn').addEventListener('click', () => {
 try {
   if (sessionStorage.getItem('lx-autostart')) {
     sessionStorage.removeItem('lx-autostart');
-    setTimeout(() => document.getElementById('startBtn').click(), 50);
+    window.__autostart = true;
   }
 } catch {}

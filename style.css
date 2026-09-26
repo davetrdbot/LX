@@ -171,3 +171,8 @@ body.touch #killfeed { top: 140px; }
 .credit b { color: var(--accent); }
 #hudCredit { position: absolute; left: 12px; bottom: 10px; font-size: 10px; letter-spacing: 2px; opacity: .55; font-weight: 700; }
 body.touch #hudCredit { top: 8px; bottom: auto; left: 50%; transform: translateX(-50%); }
+
+#quality { font-size: 12px; letter-spacing: 2px; opacity: .85; display: flex; gap: 6px; align-items: center; }
+#quality button { background: rgba(0,0,0,.4); color: #fff; border: 1px solid #444c5e; border-radius: 6px; padding: 5px 10px; font-weight: 800; cursor: pointer; }
+#quality button.on { border-color: var(--accent); color: var(--accent); }
+button.big:disabled { filter: grayscale(.7); opacity: .7; }

@@ -5,6 +5,7 @@ import { input } from './input.js';
 import { groundMove, airMove } from './movement.js';
 import { fireWeapon, placeGloo } from './combat.js';
 import { raycastBoxes } from './physics.js';
+import { heightAt } from './terrain.js';
 import { wants, applyItem, itemLabel } from './loot.js';
 import { clamp } from './utils.js';
 import { sfxPickup, sfxReload, sfxHeal, sfxChute } from './audio.js';
@@ -49,7 +50,7 @@ export class Player extends Character {
     }
     if (this.state === 'fall' || this.state === 'chute') {
       if (airMove(this, dt, wx, wz)) game.banner('LANDED — FIND A GUN!', 2);
-      this.animate(dt, 0);
+      this.animate(dt, 0, camera.position);
       this.updateCamera(dt, game, camera);
       return;
     }
@@ -113,7 +114,7 @@ export class Player extends Character {
     }
     if (input.take('pickup') && this.nearItem) this.pickup(game, this.nearItem);
 
-    this.animate(dt, moveSpeed);
+    this.animate(dt, moveSpeed, camera.position);
     this.updateCamera(dt, game, camera);
   }
 
@@ -161,7 +162,8 @@ export class Player extends Character {
     if (dist > 0) {
       const hit = raycastBoxes(base.x, base.y, base.z, back.x, back.y, back.z, dist + 0.3);
       if (hit) want.copy(base).addScaledVector(back, Math.max(0.3, hit.t - 0.3));
-      if (want.y < 0.3) want.y = 0.3;
+      const gy = heightAt(want.x, want.z) + 0.35;
+      if (want.y < gy) want.y = gy;
     }
     camera.position.lerp(want, this.state === 'ground' ? 1 : Math.min(1, dt * 10));
     const look = base.addScaledVector(back, -20);

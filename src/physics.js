@@ -1,6 +1,8 @@
 // Axis-aligned box colliders + the handful of queries the game needs.
 // Characters are treated as vertical cylinders; bullets are rays.
 
+import { heightAt, terrainRay } from './terrain.js';
+
 export const colliders = [];
 
 export function addBox(minX, minY, minZ, maxX, maxY, maxZ, extra = {}) {
@@ -46,7 +48,7 @@ export function resolveCircle(pos, radius, height) {
 
 // Highest walkable surface under a cylinder whose feet are at y (so you can hop onto crates).
 export function groundAt(x, z, y, radius) {
-  let g = 0;
+  let g = heightAt(x, z);
   for (let i = 0; i < colliders.length; i++) {
     const c = colliders[i];
     if (c.maxY > y + 0.35 || c.maxY <= g) continue;
@@ -122,5 +124,6 @@ export function lineOfSight(ax, ay, az, bx, by, bz) {
   const dx = bx - ax, dy = by - ay, dz = bz - az;
   const len = Math.hypot(dx, dy, dz);
   if (len < 1e-4) return true;
-  return !raycastBoxes(ax, ay, az, dx / len, dy / len, dz / len, len);
+  if (raycastBoxes(ax, ay, az, dx / len, dy / len, dz / len, len)) return false;
+  return terrainRay(ax, ay, az, dx / len, dy / len, dz / len, len) === null;
 }

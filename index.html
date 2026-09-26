@@ -6,7 +6,10 @@
 <title>LX Battle Royale</title>
 <link rel="stylesheet" href="style.css">
 <script type="importmap">
-{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
 </script>
 </head>
 <body>
@@ -17,7 +20,8 @@
   <div class="logo">L<span>X</span></div>
   <div class="tag">BATTLE ROYALE · 30 SURVIVORS · 1 CHAMPION</div>
   <input id="nameInput" maxlength="14" placeholder="Your name" autocomplete="off">
-  <button id="startBtn" class="big">START</button>
+  <button id="startBtn" class="big" disabled>LOADING…</button>
+  <div id="quality">GRAPHICS <button data-q="low">LOW</button><button data-q="med">MEDIUM</button><button data-q="high">HIGH</button></div>
   <div class="help desktop-only">
     <b>WASD</b> move · <b>Mouse</b> aim · <b>LMB</b> fire · <b>RMB</b> scope · <b>Shift</b> sprint · <b>Space</b> jump<br>
     <b>E</b> pick up · <b>R</b> reload · <b>1/2</b> switch · <b>H</b> medkit · <b>G</b> gloo wall · <b>F</b> jump from plane

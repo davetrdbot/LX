@@ -1,85 +1,63 @@
 import * as THREE from 'three';
 import { PLAYER, WEAPONS, ARMOR_REDUCTION, HEADSHOT_MULT } from './config.js';
+import { instantiate, randomOutfit, Animator } from './assets.js';
 
-const boxGeo = new THREE.BoxGeometry(1, 1, 1);
 const matCache = new Map();
-function mat(color) {
-  if (!matCache.has(color)) matCache.set(color, new THREE.MeshLambertMaterial({ color }));
-  return matCache.get(color);
+function mat(color, rough = 0.6, metal = 0.2) {
+  const k = color + ':' + rough + ':' + metal;
+  if (!matCache.has(k)) matCache.set(k, new THREE.MeshStandardMaterial({ color, roughness: rough, metalness: metal }));
+  return matCache.get(k);
 }
-function part(w, h, d, color, x = 0, y = 0, z = 0) {
-  const m = new THREE.Mesh(boxGeo, mat(color));
-  m.scale.set(w, h, d);
-  m.position.set(x, y, z);
-  m.castShadow = true;
-  return m;
+function box(w, h, d, m, x = 0, y = 0, z = 0) {
+  const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
+  b.position.set(x, y, z);
+  b.castShadow = true;
+  return b;
+}
+function cyl(r, len, m, x = 0, y = 0, z = 0, seg = 10) {
+  const c = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, seg), m);
+  c.rotation.x = Math.PI / 2;
+  c.position.set(x, y, z);
+  c.castShadow = true;
+  return c;
 }
 
-const SKINS = [0xf1c27d, 0xe0ac69, 0xc68642, 0x8d5524, 0xffdbac];
-const SHIRTS = [0xd7263d, 0x1b998b, 0x2e86ab, 0xf46036, 0x5b5f97, 0x3d3b30, 0xc5d86d, 0x7b2d26, 0x0b3954, 0x8e44ad];
-const PANTS = [0x2d3142, 0x3a3a3a, 0x4f5d75, 0x5c4033, 0x1f2833];
-
-// Low-poly humanoid facing -Z. Parts are exposed for animation.
-export function buildModel(shirt, isPlayer) {
+// Detailed low-poly guns built from parts. Origin = grip, barrel points -Z.
+const gunCache = {};
+export function gunMesh(def) {
+  if (!def) return new THREE.Group();
+  if (gunCache[def.name]) return gunCache[def.name].clone();
   const g = new THREE.Group();
-  const skin = SKINS[Math.floor(Math.random() * SKINS.length)];
-  shirt = shirt ?? SHIRTS[Math.floor(Math.random() * SHIRTS.length)];
-  const pants = PANTS[Math.floor(Math.random() * PANTS.length)];
-
-  const hipL = new THREE.Group(); hipL.position.set(-0.13, 0.85, 0);
-  const hipR = new THREE.Group(); hipR.position.set(0.13, 0.85, 0);
-  hipL.add(part(0.22, 0.85, 0.24, pants, 0, -0.42, 0));
-  hipR.add(part(0.22, 0.85, 0.24, pants, 0, -0.42, 0));
-  const torso = part(0.56, 0.62, 0.3, shirt, 0, 1.16, 0);
-  const vest = part(0.6, 0.45, 0.34, 0x4a5a3a, 0, 1.2, 0); vest.visible = false;
-  const head = part(0.32, 0.34, 0.32, skin, 0, 1.64, 0);
-  const hair = part(0.34, 0.1, 0.34, isPlayer ? 0xffb400 : 0x222222, 0, 1.83, 0.01);
-  const helm = part(0.38, 0.2, 0.38, 0x3d4a2f, 0, 1.82, 0); helm.visible = false;
-
-  const shoulderL = new THREE.Group(); shoulderL.position.set(-0.36, 1.42, 0);
-  const shoulderR = new THREE.Group(); shoulderR.position.set(0.36, 1.42, 0);
-  shoulderL.add(part(0.18, 0.62, 0.18, shirt, 0, -0.28, 0));
-  shoulderR.add(part(0.18, 0.62, 0.18, shirt, 0, -0.28, 0));
-  // aim pose: arms forward
-  shoulderR.rotation.x = -1.35;
-  shoulderL.rotation.set(-1.25, 0, 0.45);
-
-  const gun = new THREE.Group();
-  gun.position.set(0.22, 1.36, -0.45);
-  g.add(hipL, hipR, torso, vest, head, hair, helm, shoulderL, shoulderR, gun);
-
-  // parachute (hidden until used)
-  const chute = new THREE.Group();
-  const canopy = new THREE.Mesh(
-    new THREE.SphereGeometry(3, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2.4),
-    new THREE.MeshLambertMaterial({ color: isPlayer ? 0xffb400 : shirt, side: THREE.DoubleSide })
-  );
-  canopy.position.y = 3.2;
-  canopy.scale.set(1, 0.5, 0.8);
-  chute.add(canopy);
-  const lineMat = new THREE.LineBasicMaterial({ color: 0xffffff });
-  const pts = [];
-  for (const [x, z] of [[-2.2, -1.5], [2.2, -1.5], [-2.2, 1.5], [2.2, 1.5]]) pts.push(new THREE.Vector3(0, 1.5, 0), new THREE.Vector3(x, 4.3, z));
-  chute.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), lineMat));
-  chute.visible = false;
-  g.add(chute);
-
-  return { group: g, hipL, hipR, shoulderL, shoulderR, gun, chute, vest, helm, head, torso };
-}
-
-function gunMesh(def) {
-  const g = new THREE.Group();
-  if (!def) return g;
-  const L = def.len;
-  g.add(part(0.08, 0.12, L, def.color, 0, 0, -L / 2));
-  g.add(part(0.07, 0.16, 0.1, 0x222222, 0, -0.12, -0.08)); // grip
-  if (def.kind !== 'pistol') g.add(part(0.08, 0.14, 0.25, def.color, 0, -0.02, 0.12)); // stock
-  if (def.scope) g.add(part(0.06, 0.06, 0.3, 0x111111, 0, 0.1, -L * 0.45));
-  if (def.kind === 'ar' || def.kind === 'smg') g.add(part(0.06, 0.18, 0.08, 0x222222, 0, -0.14, -L * 0.45)); // mag
-  return g;
+  const black = mat(0x1c1d20, 0.45, 0.6), steel = mat(0x55595e, 0.35, 0.8), body = mat(def.color, 0.55, 0.3), wood = mat(0x7a4a22, 0.7, 0);
+  switch (def.kind) {
+    case 'pistol':
+      g.add(box(0.05, 0.07, 0.26, black, 0, 0.07, -0.08), box(0.045, 0.12, 0.06, black, 0, 0, 0.02).rotateX(-0.2), cyl(0.012, 0.05, steel, 0, 0.08, -0.23));
+      break;
+    case 'smg':
+      g.add(box(0.06, 0.09, 0.42, body, 0, 0.07, -0.14), cyl(0.018, 0.22, steel, 0, 0.08, -0.45), box(0.04, 0.2, 0.05, black, 0, -0.09, -0.12),
+        box(0.045, 0.1, 0.05, black, 0, -0.02, 0.03).rotateX(-0.25), box(0.02, 0.03, 0.3, steel, 0, 0.06, 0.2));
+      break;
+    case 'shotgun':
+      g.add(cyl(0.025, 0.6, steel, 0, 0.09, -0.4), cyl(0.02, 0.45, black, 0, 0.05, -0.33), box(0.06, 0.09, 0.24, black, 0, 0.07, -0.02),
+        box(0.055, 0.12, 0.3, wood, 0, 0.02, 0.2).rotateX(0.12), box(0.05, 0.05, 0.16, wood, 0, 0.04, -0.28));
+      break;
+    case 'ar':
+      g.add(box(0.06, 0.1, 0.42, body, 0, 0.07, -0.12), box(0.05, 0.07, 0.26, black, 0, 0.07, -0.44), cyl(0.014, 0.18, steel, 0, 0.08, -0.65),
+        box(0.045, 0.2, 0.07, black, 0, -0.08, -0.2).rotateX(0.25), box(0.045, 0.11, 0.05, black, 0, -0.02, 0.04).rotateX(-0.25),
+        box(0.05, 0.1, 0.24, def.name === 'AK' ? wood : black, 0, 0.05, 0.22), box(0.02, 0.04, 0.12, black, 0, 0.14, -0.1));
+      break;
+    case 'sniper':
+      g.add(box(0.06, 0.1, 0.5, body, 0, 0.07, -0.12), cyl(0.016, 0.6, steel, 0, 0.09, -0.65), cyl(0.03, 0.34, black, 0, 0.18, -0.12),
+        cyl(0.036, 0.04, black, 0, 0.18, -0.3), box(0.05, 0.13, 0.3, body, 0, 0.03, 0.25), box(0.045, 0.1, 0.05, black, 0, -0.03, 0.02).rotateX(-0.25),
+        box(0.04, 0.12, 0.06, black, 0, -0.06, -0.14));
+      break;
+  }
+  gunCache[def.name] = g;
+  return g.clone();
 }
 
 let nextId = 1;
+const tmpV = new THREE.Vector3(), UPV = new THREE.Vector3(0, 1, 0);
 
 export class Character {
   constructor(name, isPlayer = false) {
@@ -105,27 +83,79 @@ export class Character {
     this.reloadEnd = 0;
     this.healEnd = 0;
     this.onGround = true;
-    this.walkPhase = 0;
     this.lastHitBy = null;
-    this.model = buildModel(isPlayer ? 0xff5a1f : undefined, isPlayer);
-    this.mesh = this.model.group;
-    this.mesh.rotation.order = 'YXZ';
-    this.mesh.visible = false;
     this.deathTime = 0;
+    this.nearCamera = true;
+    this.buildModel();
+  }
+
+  buildModel() {
+    const outfit = randomOutfit(this.isPlayer);
+    const { root, bones } = instantiate(outfit);
+    this.bones = bones;
+    this.anim = new Animator(root);
+    this.mesh = new THREE.Group();
+    this.mesh.add(root);
+    this.mesh.visible = false;
+    this.skin = root;
+
+    // gear attached in bind pose so it follows the skeleton
+    root.updateMatrixWorld(true);
+    const head = bones['DEF-head'], chest = bones['DEF-spine002'] || bones['DEF-spine003'];
+    const olive = mat(0x4a5a3a, 0.8, 0.05), pouch = mat(0x39462c, 0.8, 0), helmMat = mat(0x3d4a2f, 0.6, 0.2);
+    const hp = head.getWorldPosition(new THREE.Vector3()), cp = chest.getWorldPosition(new THREE.Vector3());
+    // model faces +Z inside root (root is rotated PI), so "front" is -Z in this world frame
+    const f = -1;
+    const helm = new THREE.Group();
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(0.15, 14, 8, 0, Math.PI * 2, 0, Math.PI / 1.9), helmMat);
+    dome.scale.set(1, 0.95, 1.12); dome.castShadow = true;
+    helm.add(dome, box(0.3, 0.025, 0.08, helmMat, 0, -0.005, 0.14 * f));
+    helm.position.set(hp.x, hp.y + 0.13, hp.z);
+    head.attach(helm);
+    const vest = new THREE.Group();
+    vest.add(box(0.36, 0.34, 0.07, olive, 0, 0, 0.12 * f), box(0.36, 0.34, 0.07, olive, 0, 0, -0.12 * f),
+      box(0.08, 0.1, 0.05, pouch, -0.1, -0.06, 0.17 * f), box(0.08, 0.1, 0.05, pouch, 0.1, -0.06, 0.17 * f),
+      box(0.36, 0.06, 0.28, olive, 0, 0.15, 0));
+    vest.position.set(cp.x, cp.y - 0.02, cp.z);
+    chest.attach(vest);
+    const pack = new THREE.Group();
+    const packMat = mat(this.isPlayer ? 0x2b2b2b : 0x5b4a33, 0.85, 0);
+    pack.add(box(0.26, 0.32, 0.12, packMat), box(0.22, 0.1, 0.05, packMat, 0, -0.07, 0.08 * -f), box(0.26, 0.05, 0.14, mat(0x222222, 0.7, 0), 0, 0.17, 0));
+    pack.position.set(cp.x, cp.y - 0.06, cp.z - 0.17 * f);
+    chest.attach(pack);
+    this.gear = { helm, vest, pack };
+    helm.visible = vest.visible = false;
+
+    // gun follows the right hand in world space
+    this.gunHolder = new THREE.Group();
+    this.mesh.add(this.gunHolder);
+
+    const chute = new THREE.Group();
+    const canopy = new THREE.Mesh(
+      new THREE.SphereGeometry(3, 16, 6, 0, Math.PI * 2, 0, Math.PI / 2.6),
+      new THREE.MeshStandardMaterial({ color: this.isPlayer ? 0xffb400 : outfit.shirt, side: THREE.DoubleSide, roughness: 0.8 })
+    );
+    canopy.position.y = 4.4;
+    canopy.scale.set(1.2, 0.45, 0.8);
+    chute.add(canopy);
+    const pts = [];
+    for (const [x, z] of [[-3, -1.6], [3, -1.6], [-3, 1.6], [3, 1.6], [0, -2.2], [0, 2.2]]) pts.push(new THREE.Vector3(0, 1.5, 0), new THREE.Vector3(x, 4.8, z));
+    chute.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0xeeeeee })));
+    chute.visible = false;
+    this.mesh.add(chute);
+    this.chute = chute;
+    this.animState = '';
+    this.animArmed = null;
   }
 
   get weapon() { return this.weapons[this.slot]; }
 
   refreshGear() {
-    this.model.vest.visible = this.vest > 0;
-    this.model.helm.visible = this.helm > 0;
-    const g = this.model.gun;
+    this.gear.vest.visible = this.vest > 0;
+    this.gear.helm.visible = this.helm > 0;
+    const g = this.gunHolder;
     while (g.children.length) g.remove(g.children[0]);
-    const w = this.weapon;
-    if (w) g.add(gunMesh(w.def));
-    const armed = !!w;
-    this.model.shoulderR.rotation.x = armed ? -1.35 : 0;
-    this.model.shoulderL.rotation.set(armed ? -1.25 : 0, 0, armed ? 0.45 : 0);
+    if (this.weapon) g.add(gunMesh(this.weapon.def));
   }
 
   giveWeapon(key, withMag = true) {
@@ -154,6 +184,7 @@ export class Character {
     if (!w || this.reloadEnd > now || w.mag >= w.def.mag || this.ammo[w.def.ammo] <= 0) return false;
     this.reloadEnd = now + w.def.reload;
     this.healEnd = 0;
+    if (this.nearCamera) this.anim.oneShot('Pistol_Reload', 'upper', 1, 2.4 / w.def.reload);
     return true;
   }
 
@@ -170,7 +201,6 @@ export class Character {
 
   get reloading() { return this.reloadEnd > 0; }
 
-  // Returns the damage actually dealt.
   takeDamage(raw, head, attacker) {
     if (!this.alive) return 0;
     const red = head ? ARMOR_REDUCTION[this.helm] : ARMOR_REDUCTION[this.vest];
@@ -178,45 +208,75 @@ export class Character {
     this.hp -= dmg;
     if (attacker) this.lastHitBy = attacker;
     this.healEnd = 0;
+    if (this.hp > 0 && this.nearCamera && Math.random() < 0.5) this.anim.oneShot(head ? 'Hit_Head' : 'Hit_Chest', 'upper', 0.6, 1.5);
     return dmg;
   }
 
-  // Walk cycle + body orientation.
-  animate(dt, speed) {
-    const m = this.model;
+  onFire() { if (this.nearCamera) this.anim.oneShot('Pistol_Shoot', 'upper', 0.7, this.weapon?.def.kind === 'sniper' ? 1 : 2); }
+  onPunch() { this.anim.oneShot('Punch_Jab', 'upper', 1, 1.6); }
+  onDeath() {
+    this.anim.setAim(0, false);
+    this.anim.setLower('Death01', 0.15);
+    this.anim.setUpper('Death01', 0.15);
+    this.gunHolder.visible = false;
+    this.chute.visible = false;
+    this.skin.rotation.x = 0;
+  }
+
+  // Picks animation clips from movement state, then poses the gun at the hand.
+  animate(dt, speed, camPos) {
     this.mesh.position.copy(this.pos);
     this.mesh.rotation.y = this.yaw;
-    if (this.state === 'dead') return;
-    if (speed > 0.3 && this.onGround) {
-      this.walkPhase += dt * speed * 1.6;
-      const s = Math.sin(this.walkPhase) * 0.7;
-      m.hipL.rotation.x = s;
-      m.hipR.rotation.x = -s;
-    } else {
-      m.hipL.rotation.x *= 0.8;
-      m.hipR.rotation.x *= 0.8;
+    const far = camPos ? camPos.distanceToSquared(this.pos) > 150 * 150 : false;
+    this.nearCamera = !far;
+    if (this.state === 'dead') { this.anim.update(dt); return; }
+
+    const armed = !!this.weapon;
+    let st;
+    if (this.state === 'fall') st = 'fall';
+    else if (this.state === 'chute') st = 'chute';
+    else if (!this.onGround) st = 'air';
+    else if (this.healEnd) st = speed > 0.5 ? 'walk' : 'heal';
+    else if (speed > 7.5) st = 'sprint';
+    else if (speed > 3.5) st = 'jog';
+    else if (speed > 0.4) st = 'walk';
+    else st = 'idle';
+
+    const aimUpper = armed && !['fall', 'sprint', 'heal', 'chute'].includes(st);
+    if (st !== this.animState || armed !== this.animArmed) {
+      this.animState = st;
+      this.animArmed = armed;
+      const L = { fall: 'Swim_Idle_Loop', chute: 'Jump_Loop', air: 'Jump_Loop', heal: 'Crouch_Idle_Loop', sprint: 'Sprint_Loop', jog: 'Jog_Fwd_Loop', walk: 'Walk_Loop', idle: armed ? 'Pistol_Idle_Loop' : 'Idle_Loop' }[st];
+      this.anim.setLower(L, 0.2);
+      if (!aimUpper) this.anim.setUpper(st === 'heal' ? 'Interact' : L, 0.2);
     }
-    if (this.state === 'fall') {
-      this.mesh.rotation.x = -1.2; // skydive pose
-      m.shoulderL.rotation.set(0, 0, 1.3);
-      m.shoulderR.rotation.set(0, 0, -1.3);
-    } else if (this.mesh.rotation.x !== 0) {
-      this.mesh.rotation.x = 0;
-      this.refreshGear();
-      m.shoulderL.rotation.z = this.weapon ? 0.45 : 0;
-      m.shoulderR.rotation.z = 0;
-    }
-    m.chute.visible = this.state === 'chute';
-    // gun follows pitch a bit
-    m.shoulderR.rotation.y = 0;
-    m.gun.rotation.x = this.pitch * 0.8;
+    this.anim.setAim(this.pitch, aimUpper);
+    // far characters animate at a lower rate
+    this.animAcc = (this.animAcc || 0) + dt;
+    if (!far || this.animAcc > 0.1) { this.anim.update(this.animAcc); this.animAcc = 0; }
+
+    this.skin.rotation.x = st === 'fall' ? -1.2 : 0;
+    this.chute.visible = st === 'chute';
+
+    // gun at right hand, aimed along pitch (slung down when sprinting / healing)
+    const hand = this.bones['DEF-handR'];
+    if (hand && armed && st !== 'fall' && st !== 'chute') {
+      this.gunHolder.visible = true;
+      this.mesh.updateMatrixWorld(true);
+      hand.getWorldPosition(tmpV);
+      this.mesh.worldToLocal(tmpV);
+      this.gunHolder.position.copy(tmpV);
+      this.gunHolder.rotation.set(aimUpper ? this.pitch : -1.0, 0, 0);
+    } else this.gunHolder.visible = false;
   }
 
   muzzleWorld(out) {
-    const L = this.weapon ? this.weapon.def.len : 0.3;
-    out.set(0.22, 1.36 + Math.sin(this.pitch) * L, -0.45 - L * Math.cos(this.pitch));
-    out.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.yaw);
-    return out.add(this.pos);
+    if (this.weapon && this.gunHolder.visible) {
+      out.set(0, 0.08, -this.weapon.def.len * 0.85);
+      this.gunHolder.localToWorld(out);
+      return out;
+    }
+    return out.set(0.25, 1.4, -0.5).applyAxisAngle(UPV, this.yaw).add(this.pos);
   }
 
   eye(out) { return out.set(this.pos.x, this.pos.y + 1.6, this.pos.z); }

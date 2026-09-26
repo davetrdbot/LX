@@ -101,10 +101,10 @@ export class LootManager {
       for (let i = 0; i < n; i++) {
         const it = rollItem(s.tier);
         const ox = (Math.random() - 0.5) * 1.6, oz = (Math.random() - 0.5) * 1.6;
-        this.spawn(it, s.x + ox, s.z + oz);
+        this.spawn(it, s.x + ox, s.z + oz, s.y || 0);
         if (it.type === 'gun') {
           const a = WEAPONS[it.key].ammo;
-          this.spawn({ type: 'ammo', ammo: a, amount: AMMO_PICKUP[a] }, s.x + ox + 0.7, s.z + oz);
+          this.spawn({ type: 'ammo', ammo: a, amount: AMMO_PICKUP[a] }, s.x + ox + 0.7, s.z + oz, s.y || 0);
         }
       }
     }
@@ -146,6 +146,7 @@ export class LootManager {
       const b = it.mesh.userData.body;
       b.rotation.y += dt * 1.2;
       b.position.y = 0.45 + Math.sin(t * 2 + it.phase) * 0.08;
+      it.mesh.visible = it.mesh.position.distanceToSquared(this.focus || it.mesh.position) < 140 * 140;
     }
   }
 }

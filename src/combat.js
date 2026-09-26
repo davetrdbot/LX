@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLOO } from './config.js';
 import { raycastBoxes, raycastCharacter, addBox, removeCollider } from './physics.js';
+import { terrainRay } from './terrain.js';
 import { sfxShot, sfxHit, sfxEmpty, sfxReload, sfxGloo } from './audio.js';
 
 const tmpDir = new THREE.Vector3();
@@ -25,6 +26,7 @@ export function fireWeapon(game, shooter, origin, dir, now, extraSpread = 0) {
   shooter.healEnd = 0;
   shooter.lastShotAt = now;
 
+  shooter.onFire();
   shooter.muzzleWorld(tmpMuzzle);
   game.effects.flash(tmpMuzzle);
   const distToPlayer = shooter.isPlayer ? 0 : shooter.pos.distanceTo(game.player.pos) || 0.01;
@@ -48,9 +50,9 @@ export function fireWeapon(game, shooter, origin, dir, now, extraSpread = 0) {
       let dmg = def.dmg;
       if (def.pellets > 1) dmg *= Math.max(0.25, 1 - res.t / def.range);
       dealtTotal += game.damage(res.char, dmg, res.head, shooter, def.name, tmpEnd);
-    } else if (res.box) {
-      if (res.box.gloo) damageGloo(game, res.box, def.dmg);
-      game.effects.impact(tmpEnd, res.box.gloo ? 'gloo' : 'dust', def.pellets > 1 ? 2 : 4);
+    } else if (res.box || res.ground) {
+      if (res.box?.gloo) damageGloo(game, res.box, def.dmg);
+      game.effects.impact(tmpEnd, res.box?.gloo ? 'gloo' : 'dust', def.pellets > 1 ? 2 : 4);
     }
     if (p < 3 || Math.random() < 0.3) game.effects.tracer(tmpMuzzle, tmpEnd);
   }
@@ -63,6 +65,8 @@ export function fireWeapon(game, shooter, origin, dir, now, extraSpread = 0) {
 export function traceShot(game, shooter, origin, dir, range) {
   const box = raycastBoxes(origin.x, origin.y, origin.z, dir.x, dir.y, dir.z, range);
   let best = { t: box ? box.t : range, box: box ? box.collider : null, char: null, head: false };
+  const tt = terrainRay(origin.x, origin.y, origin.z, dir.x, dir.y, dir.z, best.t);
+  if (tt !== null) best = { t: tt, box: null, char: null, head: false, ground: true };
   for (const c of game.characters) {
     if (c === shooter || !c.alive || c.state === 'plane') continue;
     // cheap reject: distance from ray
@@ -87,9 +91,7 @@ function melee(game, shooter, now) {
     const d = Math.hypot(dx, dz);
     if (d < 1.9 && (dx * fx + dz * fz) / (d || 1) > 0.5 && Math.abs(c.pos.y - shooter.pos.y) < 1.2) { hit = c; break; }
   }
-  // punch animation
-  shooter.model.shoulderR.rotation.x = -1.5;
-  setTimeout(() => { if (!shooter.weapon) shooter.model.shoulderR.rotation.x = 0; }, 150);
+  shooter.onPunch();
   if (hit) {
     tmpEnd.copy(hit.pos); tmpEnd.y += 1.3;
     const d = game.damage(hit, 16, false, shooter, 'FIST', tmpEnd);
